@@ -10,6 +10,11 @@ import joblib
 import pandas as pd
 import streamlit as st
 
+import importlib
+
+import crop_icons
+
+importlib.reload(crop_icons)  # ให้ Streamlit โหลด crop_icons.py ใหม่ทุกครั้งที่ไฟล์ถูกแก้ (กัน ImportError หลังอัปเดตโค้ด)
 from crop_icons import CROP_GROUPS, CROP_SVG, CROP_TH, GROUP_OF
 
 MODEL_PATH = Path(__file__).parent / "crop_recommender.joblib"
