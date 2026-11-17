@@ -10,7 +10,7 @@ import joblib
 import pandas as pd
 import streamlit as st
 
-from crop_icons import CROP_SVG, CROP_TH
+from crop_icons import CROP_GROUPS, CROP_SVG, CROP_TH, GROUP_OF
 
 MODEL_PATH = Path(__file__).parent / "crop_recommender.joblib"
 
@@ -57,6 +57,18 @@ h1, h2, h3, .hero h1 { font-family: 'Kanit', sans-serif !important; }
 .tile svg { width: 56px; height: 56px; }
 .tile .th { font-size: .9rem; color: #16261C; margin-top: 4px; }
 .tile .p { font-size: .75rem; color: #5E8A50; font-weight: 600; }
+.groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.grp { background: #fff; border: 1px solid #E6E2D6; border-radius: 16px; padding: 12px; opacity: .6; }
+.grp.on { opacity: 1; border: 2px solid var(--c); }
+.grp .name { font-family: 'Kanit', sans-serif; font-size: 1rem; color: #16261C; }
+.grp .val { font-family: 'Kanit', sans-serif; font-size: 1.5rem; color: var(--c); line-height: 1.2; }
+.grp .bar > div { background: var(--c); }
+.grp .bar { margin-top: 6px; height: 8px; }
+.grp .mini { display: flex; gap: 2px; margin-top: 8px; flex-wrap: wrap; }
+.grp .mini svg { width: 18px; height: 18px; }
+.chip { display: inline-block; font-size: .8rem; font-weight: 600; color: #fff; background: var(--c); border-radius: 99px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; }
+.gtitle { font-family: 'Kanit', sans-serif; font-size: 1.05rem; color: var(--c); margin: 18px 0 8px; }
+@media (max-width: 700px) { .groups { grid-template-columns: repeat(2, 1fr); } }
 .note { color: #6B7A6E; font-size: .85rem; margin-top: 18px; }
 </style>
 """, unsafe_allow_html=True)
@@ -107,15 +119,28 @@ with left:
 
 proba = predict_proba(values)
 top3 = proba.head(3)
+# ความมั่นใจระดับหมวด = ผลรวมความมั่นใจของพืชทุกชนิดในหมวดนั้น (ใช้โมเดลเดิม ไม่ต้องเทรนใหม่)
+group_proba = pd.Series({g: proba[crops].sum() for g, (_, crops) in CROP_GROUPS.items()}).sort_values(ascending=False)
 
 with right:
-    st.markdown('<p class="panel-title">พืชที่แนะนำ</p>', unsafe_allow_html=True)
+    st.markdown('<p class="panel-title">ขั้นที่ 1 · หมวดพืชที่เหมาะกับแปลง</p>', unsafe_allow_html=True)
+    best_group = group_proba.index[0]
+    cards = "".join(
+        f'<div class="grp{" on" if g == best_group else ""}" style="--c:{CROP_GROUPS[g][0]}">'
+        f'<div class="name">{g}</div><div class="val">{p:.0f}%</div>'
+        f'<div class="bar"><div style="width:{max(p, 1):.0f}%"></div></div>'
+        f'<div class="mini">{"".join(CROP_SVG[c] for c in CROP_GROUPS[g][1])}</div></div>'
+        for g, p in group_proba.items())
+    st.markdown(f'<div class="groups">{cards}</div>', unsafe_allow_html=True)
+
+    st.markdown('<p class="panel-title">ขั้นที่ 2 · ชนิดพืชที่แนะนำ</p>', unsafe_allow_html=True)
     best_name, best_p = top3.index[0], top3.iloc[0]
+    chip = lambda n: f'<span class="chip" style="--c:{CROP_GROUPS[GROUP_OF[n]][0]}">{GROUP_OF[n]}</span>'
     html(f"""
 <div class="best">
   <div class="icon">{CROP_SVG[best_name]}</div>
   <div style="flex:1">
-    <div class="rank">อันดับ 1</div>
+    <div class="rank">อันดับ 1 {chip(best_name)}</div>
     <div class="th">{CROP_TH[best_name]}</div>
     <div class="en">{best_name}</div>
     <div class="bar"><div style="width:{best_p:.0f}%"></div></div>
@@ -130,7 +155,7 @@ with right:
 <div class="runner">
   <div class="icon">{CROP_SVG[name]}</div>
   <div style="flex:1">
-    <div class="en">อันดับ {i + 2}</div>
+    <div class="en">อันดับ {i + 2} {chip(name)}</div>
     <div class="th">{CROP_TH[name]} <span class="en">{name}</span></div>
     <div class="bar"><div style="width:{max(p, 1):.0f}%"></div></div>
     <div class="en">{p:.1f}%</div>
@@ -140,14 +165,16 @@ with right:
     if best_p < 50:
         st.warning("ความมั่นใจต่ำกว่า 50% — ค่าที่กรอกอาจไม่ตรงกับสภาพที่พืชชนิดใดในระบบชอบ ควรใช้ผลนี้อย่างระมัดระวัง")
 
-st.markdown('<p class="panel-title" style="margin-top:28px">พืชทั้ง 22 ชนิดในระบบ</p>', unsafe_allow_html=True)
-tiles = "".join(
-    f'<div class="tile{" on" if name in top3.index else ""}">{CROP_SVG[name]}'
-    f'<div class="th">{CROP_TH[name]}</div><div class="p">{proba[name]:.0f}%</div></div>'
-    for name in sorted(CROP_SVG, key=lambda n: -proba[n])
-)
-st.markdown(f'<div class="grid">{tiles}</div>', unsafe_allow_html=True)
+st.markdown('<p class="panel-title" style="margin-top:28px">พืชทั้ง 22 ชนิดในระบบ แยกตามหมวด</p>', unsafe_allow_html=True)
+for g in group_proba.index:
+    color, crops = CROP_GROUPS[g]
+    tiles = "".join(
+        f'<div class="tile{" on" if name in top3.index else ""}">{CROP_SVG[name]}'
+        f'<div class="th">{CROP_TH[name]}</div><div class="p">{proba[name]:.0f}%</div></div>'
+        for name in sorted(crops, key=lambda n: -proba[n]))
+    st.markdown(f'<p class="gtitle" style="--c:{color}">{g} · {group_proba[g]:.0f}%</p>'
+                f'<div class="grid">{tiles}</div>', unsafe_allow_html=True)
 
 st.markdown('<p class="note">หมายเหตุ: โมเดลบอกว่าสภาพแปลง “คล้าย” พืชชนิดใดในชุดข้อมูล 22 ชนิด '
-            'ไม่ได้รับประกันผลผลิตหรือกำไร — ใช้ประกอบการตัดสินใจเท่านั้น · ภาพพืชเป็นภาพเวกเตอร์วาดประกอบ</p>',
+            'ไม่ได้รับประกันผลผลิตหรือกำไร — ใช้ประกอบการตัดสินใจเท่านั้น · ความมั่นใจของหมวด = ผลรวมความมั่นใจของพืชในหมวดนั้น · ภาพพืชเป็นภาพเวกเตอร์วาดประกอบ</p>',
             unsafe_allow_html=True)

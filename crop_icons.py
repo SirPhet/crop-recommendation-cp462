@@ -148,3 +148,14 @@ CROP_TH = {
     "muskmelon": "เมลอน", "apple": "แอปเปิล", "orange": "ส้ม", "papaya": "มะละกอ",
     "coconut": "มะพร้าว", "cotton": "ฝ้าย", "jute": "ปอ", "coffee": "กาแฟ",
 }
+
+# หมวดพืช: ชื่อหมวด -> (สีประจำหมวด, รายชื่อพืช)
+CROP_GROUPS = {
+    "ธัญพืช": ("#C9A227", ["rice", "maize"]),
+    "ถั่ว": ("#6B8E3D", ["chickpea", "kidneybeans", "pigeonpeas", "mothbeans", "mungbean", "blackgram", "lentil"]),
+    "ผลไม้": ("#D9663B", ["pomegranate", "banana", "mango", "grapes", "watermelon", "muskmelon",
+                          "apple", "orange", "papaya", "coconut"]),
+    "พืชเส้นใย/เครื่องดื่ม": ("#7A5A3A", ["cotton", "jute", "coffee"]),
+}
+GROUP_OF = {crop: g for g, (_, crops) in CROP_GROUPS.items() for crop in crops}
+assert sorted(GROUP_OF) == sorted(CROP_SVG)
