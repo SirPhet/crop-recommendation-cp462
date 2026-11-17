@@ -80,7 +80,8 @@ h1, h2, h3, .hero h1 { font-family: 'Kanit', sans-serif !important; }
 
 
 @st.cache_resource
-def load_model():
+def load_model(model_mtime: float = 0.0):
+    # model_mtime = เวลาแก้ไขไฟล์โมเดล → เมื่อเปลี่ยนไฟล์ .joblib แคชจะโหลดโมเดลใหม่เอง ไม่ต้อง reboot แอป
     saved = joblib.load(MODEL_PATH)  # {"model": Pipeline, "label_encoder": ..., "features": [...]}
     return saved["model"], saved["label_encoder"], saved["features"]
 
@@ -91,7 +92,7 @@ def html(s: str) -> None:
 
 
 def predict_proba(values: dict) -> pd.Series:
-    model, label_encoder, features = load_model()
+    model, label_encoder, features = load_model(MODEL_PATH.stat().st_mtime)
     X = pd.DataFrame([[values[f] for f in features]], columns=features)
     proba = model.predict_proba(X)[0] * 100
     return pd.Series(proba, index=label_encoder.classes_).sort_values(ascending=False)
