@@ -100,7 +100,7 @@ def predict_proba(values: dict) -> pd.Series:
 html("""
 <div class="hero">
   <h1>🌱 ระบบแนะนำพืชจากค่าดินและอากาศ</h1>
-  <p>กรอกผลตรวจดินและสภาพอากาศของแปลง → โมเดล Random Forest แนะนำพืช 3 อันดับ (Test accuracy 99.5%) · CP462 Part 2</p>
+  <p>กรอกผลตรวจดินและสภาพอากาศของแปลง → โมเดล Gaussian Naive Bayes แนะนำพืช 3 อันดับ (Test accuracy 99.5%) · CP462 Part 2</p>
 </div>
 """)
 
